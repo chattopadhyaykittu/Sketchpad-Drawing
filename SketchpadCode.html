@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+  <html>
+
+  <head>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+      
+  <title>SketchPad</title>
+
+    <style>
+        
+    body {
+       font-family: Arial;
+    }
+
+    /* Style the entire container */
+    .container{
+        height: 720px;
+        width: 1500px;
+        border: 1px solid black;
+    }    
+
+    /* Style the tab */
+    .tab {
+      overflow: hidden;
+      border: 1px solid #ccc;
+      background-color: #f1f1f1;
+    }
+
+    canvas {
+        cursor: crosshair;
+    }
+
+    /* Style for the color tabs */
+    .color {
+         display: inline-block;
+         margin-left: 0px;
+         margin-top: 8px;
+         border: 2px solid black; 
+         cursor: pointer;
+         position: absolute;
+    }
+
+    /* Style the buttons inside the tab */
+    .tab button {
+      background-color: inherit;
+      float: left;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 14px 26px;
+      transition: 0.3s;
+      font-size: 17px;
+    }
+
+    /* Change background color of buttons on hover */
+    .tab button:focus {
+      background-color: #ddd;
+    }
+
+    /* Create an active/current tablink class */
+    .tab button.active {
+      background-color: #ccc;
+    }
+
+    </style>
+      
+ </head>
+        
+    <body>
+
+    <div class="container">
+
+      <!--Creating the buttons for the container on the tab -->  
+      <div class="tab">    
+          <button class="tablinks" onclick="setMode('Freehand')">Freehand</button>
+          <button class="tablinks" onclick="setMode('Line')">Line</button>
+          <button class="tablinks" onclick="setMode('Rectangle')">Rectangle</button>
+          <button class="tablinks" onclick="setMode('Ellipse')">Ellipse</button>
+          <button class="tablinks" onclick="setMode('Square')">Square</button>
+          <button class="tablinks" onclick="setMode('Circle')">Circle</button>
+          <button class="tablinks" onclick="setMode('Polygon')">Polygon</button>
+          <p><b>Mode: &nbsp;&nbsp;<span class="write">None</span></b><p>
+       </div> 
+      
+      <!--Creating the color panel to select the colors from -->
+      <div class='color'>
+      <!--Creating a table to dsiplay the different colors -->  
+        <table cellspacing="3px">
+            <tr width=200>
+                <td id=redTD title="Red" class="color-tab" height=20 width=40 style="background-color: red; border:none" onclick="setColor('red')"></td>
+                <td id=greyTD title="Grey" class="color-tab" height=20 width=40 style="background-color: grey; border:none" onclick="setColor('grey')"></td>
+                <td id=greenTD title="Green" class="color-tab" height=20 width=40 style="background-color: green; border:none" onclick="setColor('green')"></td>
+                <td id=yellowTD title="Yellow" class="color-tab" height=20 width=40 style="background-color: yellow; border:none" onclick="setColor('yellow')"></td>
+                <td id=blackTD title="Black" class="color-tab" height=20 width=40 style="background-color: black; border:5px solid white" onclick="setColor('black')"></td>
+            </tr>
+            <tr width=200>
+                <td id=blueTD title="Blue" class="color-tab" height=30 width=40 style="background-color: blue; border:none" onclick="setColor('blue')"></td>
+                <td id=orangeTD title="Orange" class="color-tab" height=30 width=40 style="background-color: orange; border:none" onclick="setColor('orange')"></td>
+                <td id=indigoTD title="Indigo" class="color-tab" height=30 width=40 style="background-color: indigo; border:none" onclick="setColor('indigo')"></td>
+                <td id=brownTD title="Brown" class="color-tab" height=30 width=40 style="background-color: brown; border:none" onclick="setColor('brown')"></td>
+                <td id=lavenderTD title="Lavender" class="color-tab" height=30 width=40 style="background-color: lavender; border:none" onclick="setColor('lavender')"></td>
+            </tr>
+        </table>
+      </div>    
+      
+     <!-- Creating the canvas to draw the different shapes -->
+      <canvas></canvas>
+
+    </div>
+
+    <script>
+    /* Setting up the properties of the canvas */
+        
+    let canvas = document.querySelector('canvas');
+    canvas.width = window.innerWidth - 100; 
+    canvas.height = window.innerHeight - 100;
+
+    /* Creating the canvas context object setting up it's properties to render graphics inside the canvas */
+        
+    let context = canvas.getContext("2d");
+    context.fillStyle = "white";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    /* Creating the different event listeners on the canvas */
+    
+    canvas.addEventListener("mousedown",start);
+    canvas.addEventListener("mousemove",draw);
+    canvas.addEventListener("mouseup",stop);
+    canvas.addEventListener("mouseleave",stop);
+
+    /* Initializing the variables to null */
+        
+    var startX = null;
+    var startY = null;
+
+    var tempX = null;
+    var tempY = null;
+
+    var tempW = null;
+    var tempH = null;
+
+    //var tempE = null;
+    //var tempF = null;
+
+    /* Setting the default values for color, mode and the width of the drawing line */
+        
+    let pen_color = "black";
+    let shape_mode = 'Line';
+    let draw_width = "1";
+
+    /* In the beginning no drawing is possible so is_drawing is set to false */
+        
+    let is_drawing = false;
+
+    /* Summary of the setColor function :
+         
+         The setColor function, sets the color of the pen which is used to draw the diferent shapes on the canvas
+         
+         Parameter : color : particular color selected
+         
+         Return Value : Nothing -- Sets the selected color as the pen_color
+    */ 
+        
+    function setColor(color) 
+    {
+        var divName = pen_color + "TD";
+        document.getElementById(divName).style.border = "none";
+
+        divName = color + "TD";
+        document.getElementById(divName).style.border = "5px solid white";
+        //alert(document.getElementById(divName).style.borderStyle);
+        pen_color = color;
+    }
+    
+    /* Summary of the setMode function :
+         
+         The setMode function, sets the mode of the shape selected to be drawn 
+         
+         Parameter : mode : particular mode selected
+         
+         Return Value : Nothing -- Sets the selected mode as the shape_mode 
+    */ 
+
+    function setMode(mode) 
+    {
+        shape_mode = mode;
+        document.querySelector('.write').innerHTML = shape_mode;
+
+    }
+        
+    /* Summary of the drawPoly function :
+         
+         The drawPoly function, constructs the polygon by getting the current mouse position 
+         
+         Parameter : x - x-coordinate of the current position
+                     y - y-coordinate of the current position
+         
+         Return Value : Nothing -- Just draws the polygon 
+    */ 
+
+    function drawPoly(x, y)
+    {
+
+        if(startX == null)
+        {
+            startX = x;
+            startY = y;
+            tempX = x;
+            tempY = y;
+            return;
+        }
+
+        context.beginPath();
+        context.moveTo(tempX, tempY);
+        context.lineTo(x, y);   
+
+        context.strokeStyle = pen_color;
+        context.lineWidth = draw_width;
+        context.stroke();
+
+        event.preventDefault();
+
+        tempX = x;
+        tempY = y;
+    }
+    
+    /* Summary of the closePoly function :
+         
+         The closePoly function, closes the polygon when the right mouse button is pressed
+         
+         Parameter : Nothing -- It only connects the last point with the starting point 
+         
+         Return Value : Nothing -- Just draws the polygon 
+    */ 
+    
+
+    function closePoly()
+    {
+        context.beginPath();
+
+        context.moveTo(tempX, tempY);
+        context.lineTo(startX, startY);   
+
+        context.strokeStyle = pen_color;
+        context.lineWidth = draw_width;
+
+        context.stroke();
+
+        event.preventDefault();
+
+        tempX = null;
+        tempY = null;
+        startX = null;
+        startY = null;
+    }
+
+    
+    /* Summary of the start function :
+         
+         The start function stores the initial position when the 'mousedown' event occurs 
+         
+         Parameter : event: The event obejct which is passed when 'mousedown' event occurs 
+         
+         Return Value : Nothing -- It just stores the initial position in startX and startY   
+    */     
+        
+        
+    function start(event){
+
+        is_drawing = true;
+
+        var x = event.clientX - canvas.offsetLeft;
+        var y = event.clientY - canvas.offsetTop;
+
+        if(shape_mode == 'Polygon') {
+            drawPoly(x,y); 
+            return; 
+        }
+
+        context.beginPath();
+
+        context.moveTo(x, y);
+
+        startX = x;
+        startY = y;
+
+        tempH = null;
+        tempW = null;
+
+        event.preventDefault();
+    }
+     
+    /* Summary of the draw function :
+         
+         The draw function displays the shapes on the screen when 'mousemove' event occurs
+         
+         Parameter : event: The event obejct which is passed when 'mousemove' event occurs 
+         
+         Return Value : Nothing -- It displays the shape of the object drawn on the screen 
+    */     
+    
+
+    function draw(event){
+
+        if(shape_mode == 'Polygon') return;
+
+        var x = event.clientX - canvas.offsetLeft;
+        var y = event.clientY - canvas.offsetTop;
+
+
+        if(is_drawing){
+
+            if(shape_mode == 'Line' || shape_mode == 'Rectangle' || shape_mode == 'Square' ||shape_mode == 'Ellipse' || shape_mode == 'Circle') 
+            {
+
+                var offsetX = draw_width;
+                var offsetY = draw_width;
+
+                var width = tempX - startX;
+                var height = tempY - startY;
+
+                if(startX > tempX) offsetX = -draw_width;
+                if(startY > tempY) offsetY = -draw_width;
+
+                if(shape_mode == 'Ellipse' || shape_mode == 'Circle') { offsetX *= 2; offsetY *= 2; }
+                if(startX != null && startY != null && tempW != null && tempH != null){
+                    
+                    if(shape_mode == 'Square'){
+                        context.clearRect(startX - offsetX, startY - offsetY, width + 2*offsetX, width + 2*offsetY);
+                    }
+                    else {
+                        context.clearRect(startX - offsetX, startY - offsetY, width + 2*offsetX, height + 2*offsetY);
+                    }
+                    
+                }
+                
+
+                context.beginPath();
+
+                if(shape_mode == 'Line') context.moveTo(startX, startY);
+
+                if(shape_mode == 'Rectangle' || shape_mode == 'Square') 
+                {
+                    
+                    width = x - startX;
+                    height = y - startY;
+                    
+                    if(shape_mode == 'Rectangle')context.rect(startX, startY, width, height);
+                    if(shape_mode == 'Square') context.rect(startX, startY, width, width);
+                }
+
+                if(shape_mode == 'Ellipse' || shape_mode == 'Circle')    
+                {
+                    var startAngle = 0;
+                    var endAngle = 2 * Math.PI;
+
+                    width = x - startX;
+                    height = y - startY;
+
+                    if(shape_mode == 'Ellipse') context.ellipse(startX + width/2, startY + height/2,Math.abs(width/2),Math.abs(height/2),Math.PI,startAngle,endAngle);
+                    if(shape_mode == 'Circle')  context.arc(startX + width/2, startY + height/2, Math.abs(width/2), startAngle, endAngle);
+                }            
+
+            }
+            
+            if(shape_mode != 'Rectangle' && shape_mode != 'Ellipse' && shape_mode !== 'Circle' && shape_mode != 'Square') 
+            {
+                context.lineTo(x, y);
+            }
+
+            tempX = x;
+            tempY = y;
+            tempW = width;
+            tempH = height;
+
+
+            context.strokeStyle = pen_color;
+            context.lineWidth = draw_width;
+            context.stroke();
+
+    }
+
+           event.preventDefault();
+    }
+
+    /* Summary of the stop function :
+         
+         The stop function stops the drawing on the screen when 'mouseup' or 'mouseleave' event occurs 
+         
+         Parameter : event: The event obejct which is passed when 'mouseup' or 'mouseleave' event occurs 
+         
+         Return Value : Nothing -- It stops the drawing of the shape on the screen  
+    */    
+
+    function stop(event){
+
+        if(shape_mode == 'Polygon') 
+        {
+            if(event.button == 2) closePoly(); //Triggered when the right mouse button is pressed to close the polygon
+            return;
+        }
+        if(is_drawing){
+
+            context.stroke();
+            context.closePath();
+
+            is_drawing = false;
+            startX = null;
+            startY = null;
+            tempH = null;
+            tempW = null;
+        }
+
+        event.preventDefault();
+    }
+
+
+    </script>
+
+</body>
+</html>
